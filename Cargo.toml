@@ -1,0 +1,49 @@
+[package]
+name = "openmesh"
+version = "0.1.0"
+edition = "2024"
+
+documentation = "https://docs.rs/openmesh"
+homepage = "https://github.com/p-sira/openmesh"
+repository = "https://github.com/p-sira/openmesh"
+license = "BSD-3-Clause"
+description = "Vertex-face mesh validation"
+
+include = ["/src", "/LICENSE"]
+
+[dependencies]
+num-traits = { version = "0.2" }
+stl_io = { version = "0.11", optional = true }
+rustc-hash = { version = "2.1.2" }
+rayon = { version = "1.10", optional = true }
+obj = { version = "0.10.2", optional = true }
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[features]
+default = []
+rayon = ["dep:rayon"]
+io = []
+stl = ["io", "dep:stl_io"]
+obj = ["io", "dep:obj"]
+
+[[test]]
+name = "test_mesh"
+path = "tests/test_mesh.rs"
+required-features = ["stl"]
+
+[[test]]
+name = "test_io"
+path = "tests/test_io.rs"
+required-features = ["io"]
+
+[[test]]
+name = "test_large_mesh"
+path = "tests/test_large_mesh.rs"
+required-features = ["obj"]
+
+[[bench]]
+name = "mesh_benchmark"
+harness = false
+required-features = ["stl", "obj"]
