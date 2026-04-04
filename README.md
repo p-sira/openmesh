@@ -52,8 +52,10 @@ cargo add openmesh --features stl
 
 ```rust
 use openmesh::Mesh;
+use std::fs::File;
 
-let mesh = Mesh::from_stl("mesh.stl").unwrap();
+let mut file = File::open("mesh.stl").expect("Failed to open mesh.stl");
+let mesh: Mesh = Mesh::from_stl(&mut file).expect("Failed to load mesh.stl");
 
 assert!(mesh.validate().is_ok());
 ```
