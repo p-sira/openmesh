@@ -25,7 +25,7 @@
 //! cargo add openmesh --features stl
 //! ```
 //!
-//! ```rust, no_compile
+//! ```ignore
 //! use openmesh::Mesh;
 //! use std::fs::File;
 //!
