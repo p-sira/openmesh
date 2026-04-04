@@ -1,6 +1,6 @@
 [package]
 name = "openmesh"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 
 documentation = "https://docs.rs/openmesh"
@@ -25,9 +25,10 @@ obj = { version = "0.10.2", optional = true }
 criterion = "0.5.1"
 
 [features]
-default = []
-rayon = ["dep:rayon"]
-io = []
+default = ["std"]
+std = []
+rayon = ["std", "dep:rayon"]
+io = ["std"]
 stl = ["io", "dep:stl_io"]
 obj = ["io", "dep:obj"]
 

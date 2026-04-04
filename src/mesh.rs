@@ -1,3 +1,5 @@
+use alloc::vec::Vec;
+
 use crate::core::{self, Float, MeshError};
 
 // MARK: Face

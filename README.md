@@ -1,6 +1,6 @@
 # OpenMesh
 
-`openmesh` is a Rust mesh validation library using face-vertex data structure.
+**OpenMesh** is a Rust mesh validation library using face-vertex data structure.
 
 <p>
     <a href="https://opensource.org/license/BSD-3-clause" style="text-decoration:none">
@@ -19,7 +19,7 @@
 
 ## Quick Start
 
-Install `openmesh` with
+Install **OpenMesh** with
 
 ```bash
 cargo add openmesh

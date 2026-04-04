@@ -1,5 +1,9 @@
-use crate::core::{AABB, EdgeMap, Float, MeshError, MeshValidationReport};
-use crate::{Face, Vertex};
+use alloc::vec::Vec;
+
+use crate::{
+    Face, Vertex,
+    core::{AABB, EdgeMap, Float, MeshError, MeshValidationReport},
+};
 
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
