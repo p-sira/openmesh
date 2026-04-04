@@ -65,7 +65,7 @@ jobs:
             target
           key: cargo-nostd-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
       - name: Check no_std
-        run: RUSTFLAGS="-D warnings" cargo check --target thumbv7m-none-eabi --no-default-features --features std
+        run: RUSTFLAGS="-D warnings" cargo check --target thumbv7m-none-eabi --no-default-features
 
   doc:
     runs-on: ubuntu-latest
