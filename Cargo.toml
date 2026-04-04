@@ -1,13 +1,16 @@
 [package]
 name = "openmesh"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 
 documentation = "https://docs.rs/openmesh"
 homepage = "https://github.com/p-sira/openmesh"
 repository = "https://github.com/p-sira/openmesh"
 license = "BSD-3-Clause"
-description = "Vertex-face mesh validation"
+description = "Vertex-face mesh validation library"
+
+keywords = ["mesh", "geometry", "validation", "topology", "graphics"]
+categories = ["graphics", "mathematics", "algorithms"]
 
 include = ["/src", "/LICENSE"]
 
