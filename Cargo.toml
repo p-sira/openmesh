@@ -15,9 +15,9 @@ categories = ["graphics", "mathematics", "algorithms"]
 include = ["/src", "/LICENSE"]
 
 [dependencies]
-num-traits = { version = "0.2" }
+num-traits = { version = "0.2", default-features = false }
 stl_io = { version = "0.11", optional = true }
-rustc-hash = { version = "2.1.2" }
+rustc-hash = { version = "2.1.2", default-features = false }
 rayon = { version = "1.10", optional = true }
 obj = { version = "0.10.2", optional = true }
 
@@ -26,7 +26,7 @@ criterion = "0.5.1"
 
 [features]
 default = ["std"]
-std = []
+std = ["num-traits/std", "rustc-hash/std"]
 rayon = ["std", "dep:rayon"]
 io = ["std"]
 stl = ["io", "dep:stl_io"]
