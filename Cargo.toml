@@ -10,7 +10,7 @@ license = "BSD-3-Clause"
 description = "Vertex-face mesh validation library"
 
 keywords = ["mesh", "geometry", "validation", "topology", "graphics"]
-categories = ["graphics", "mathematics", "algorithms"]
+categories = ["graphics", "mathematics", "algorithms", "no-std"]
 
 include = ["/src", "/LICENSE"]
 
