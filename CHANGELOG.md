@@ -1,5 +1,11 @@
 # 0.2
 
+## 0.2.1
+
+- Allow mesh to be built from generic iterators
+- Add type conversion for std containers
+- Support nalgebra type conversion
+
 ## 0.2.0
 
 - Add no_std support

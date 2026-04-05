@@ -1,6 +1,6 @@
 [package]
 name = "openmesh"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 
 documentation = "https://docs.rs/openmesh"
@@ -23,6 +23,7 @@ obj = { version = "0.10.2", optional = true }
 hashbrown = { version = "0.16.1", default-features = false, features = [
     "alloc",
 ] }
+nalgebra = { version = "0.34.2", default-features = false, optional = true }
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -35,6 +36,7 @@ rayon = ["std", "dep:rayon", "hashbrown/rayon"]
 io = ["std"]
 stl = ["io", "dep:stl_io"]
 obj = ["io", "dep:obj"]
+nalgebra = ["dep:nalgebra"]
 
 [[test]]
 name = "test_mesh"

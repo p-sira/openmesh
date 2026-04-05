@@ -53,10 +53,14 @@
 extern crate alloc;
 
 pub mod core;
+mod face;
 mod mesh;
+mod vertex;
 
-pub use crate::mesh::{Face, Mesh, Vertex};
 pub use core::{MeshError, MeshValidationReport};
+pub use face::Face;
+pub use mesh::Mesh;
+pub use vertex::Vertex;
 
 #[cfg(feature = "io")]
 mod io;

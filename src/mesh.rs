@@ -1,36 +1,9 @@
 use alloc::vec::Vec;
 
-use crate::core::{self, Float, MeshError};
-
-// MARK: Face
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Face(pub usize, pub usize, pub usize);
-
-// MARK: Vertex
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Vertex<T: Float>(pub T, pub T, pub T);
-
-impl<T: Float> Vertex<T> {
-    pub fn sub(&self, other: &Self) -> Self {
-        Vertex(self.0 - other.0, self.1 - other.1, self.2 - other.2)
-    }
-
-    pub fn cross(&self, other: &Self) -> Self {
-        Vertex(
-            self.1 * other.2 - self.2 * other.1,
-            self.2 * other.0 - self.0 * other.2,
-            self.0 * other.1 - self.1 * other.0,
-        )
-    }
-
-    pub fn dot(&self, other: &Self) -> T {
-        self.0 * other.0 + self.1 * other.1 + self.2 * other.2
-    }
-}
-
-// MARK: Mesh
+use crate::{
+    Face, Vertex,
+    core::{self, Float, MeshError},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Mesh with vertex-face data structure.
@@ -40,8 +13,17 @@ pub struct Mesh<T: Float = f32> {
 }
 
 impl<T: Float> Mesh<T> {
-    pub fn new(vertices: Vec<Vertex<T>>, faces: Vec<Face>) -> Self {
-        Self { vertices, faces }
+    pub fn new<V, F>(vertices: V, faces: F) -> Self
+    where
+        V: IntoIterator,
+        V::Item: Into<Vertex<T>>,
+        F: IntoIterator,
+        F::Item: Into<Face>,
+    {
+        Self {
+            vertices: vertices.into_iter().map(Into::into).collect(),
+            faces: faces.into_iter().map(Into::into).collect(),
+        }
     }
 }
 
