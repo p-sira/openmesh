@@ -1,5 +1,9 @@
+use hashbrown::HashMap;
+use rustc_hash::FxBuildHasher;
+
 use crate::Face;
-use rustc_hash::FxHashMap;
+
+pub type FxHashMap<K, V> = HashMap<K, V, FxBuildHasher>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Map of edges to their counts and directions.

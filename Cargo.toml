@@ -20,6 +20,9 @@ stl_io = { version = "0.11", optional = true }
 rustc-hash = { version = "2.1.2", default-features = false }
 rayon = { version = "1.10", optional = true }
 obj = { version = "0.10.2", optional = true }
+hashbrown = { version = "0.16.1", default-features = false, features = [
+    "alloc",
+] }
 
 [dev-dependencies]
 criterion = "0.5.1"
@@ -27,8 +30,8 @@ criterion = "0.5.1"
 [features]
 default = ["std"]
 libm = ["num-traits/libm"]
-std = ["num-traits/std", "rustc-hash/std"]
-rayon = ["std", "dep:rayon"]
+std = ["num-traits/std"]
+rayon = ["std", "dep:rayon", "hashbrown/rayon"]
 io = ["std"]
 stl = ["io", "dep:stl_io"]
 obj = ["io", "dep:obj"]
