@@ -40,6 +40,12 @@
 //! ```bash
 //! cargo add openmesh --features rayon
 //! ```
+//!
+//! OpenMesh can be used in `no_std` environment:
+//!
+//! ```bash
+//! cargo add openmesh --no-default-features --features libm
+//! ```
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]

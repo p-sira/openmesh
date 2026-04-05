@@ -65,3 +65,9 @@ OpenMesh also supports parallelization using `rayon`:
 ```bash
 cargo add openmesh --features rayon
 ```
+
+OpenMesh can be used in `no_std` environment:
+
+```bash
+cargo add openmesh --no-default-features --features libm
+```
