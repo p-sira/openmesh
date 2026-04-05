@@ -11,7 +11,7 @@ impl<T: Float> Mesh<T> {
 
 impl<T: Float> From<stl_io::IndexedMesh> for Mesh<T> {
     fn from(indexed_mesh: stl_io::IndexedMesh) -> Self {
-        let vertices = indexed_mesh
+        let vertices: Vec<Vertex<T>> = indexed_mesh
             .vertices
             .into_iter()
             .map(|v| {
@@ -23,7 +23,7 @@ impl<T: Float> From<stl_io::IndexedMesh> for Mesh<T> {
             })
             .collect();
 
-        let faces = indexed_mesh
+        let faces: Vec<Face> = indexed_mesh
             .faces
             .into_iter()
             .map(|f| Face(f.vertices[0], f.vertices[1], f.vertices[2]))

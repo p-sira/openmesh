@@ -12,7 +12,7 @@ impl<T: Float> Mesh<T> {
 
 impl<T: Float> From<obj::ObjData> for Mesh<T> {
     fn from(data: obj::ObjData) -> Self {
-        let vertices = data
+        let vertices: Vec<Vertex<T>> = data
             .position
             .into_iter()
             .map(|pos| {
@@ -24,7 +24,7 @@ impl<T: Float> From<obj::ObjData> for Mesh<T> {
             })
             .collect();
 
-        let mut faces = Vec::new();
+        let mut faces: Vec<Face> = Vec::new();
         for object in data.objects {
             for group in object.groups {
                 for poly in group.polys {
