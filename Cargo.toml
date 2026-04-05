@@ -26,6 +26,7 @@ criterion = "0.5.1"
 
 [features]
 default = ["std"]
+libm = ["num-traits/libm"]
 std = ["num-traits/std", "rustc-hash/std"]
 rayon = ["std", "dep:rayon"]
 io = ["std"]
