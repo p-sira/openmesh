@@ -1,4 +1,4 @@
-use crate::{Vertex, core::Float};
+use crate::core::Float;
 
 #[allow(clippy::upper_case_acronyms)]
 pub(crate) struct AABB<T: Float> {
@@ -7,10 +7,9 @@ pub(crate) struct AABB<T: Float> {
 }
 
 impl<T: Float> AABB<T> {
-    /// Construct an axis-aligned bounding box from a triangle.
-    ///
-    /// Note: The bounding box is expanded by a small epsilon to account for floating-point precision errors.
-    pub fn from_triangle(v0: &Vertex<T>, v1: &Vertex<T>, v2: &Vertex<T>) -> Self {
+    /// Internal version that takes pre-converted Vertex<T>.
+    #[inline]
+    pub fn from_triangle_vertices(v0: &crate::Vertex<T>, v1: &crate::Vertex<T>, v2: &crate::Vertex<T>) -> Self {
         let eps = T::epsilon() * T::from(10.0).unwrap();
 
         let min_x = v0.0.min(v1.0.min(v2.0)) - eps;

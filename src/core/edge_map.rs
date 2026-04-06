@@ -1,8 +1,6 @@
 use hashbrown::HashMap;
 use rustc_hash::FxBuildHasher;
 
-use crate::Face;
-
 pub type FxHashMap<K, V> = HashMap<K, V, FxBuildHasher>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -18,7 +16,7 @@ pub struct EdgeMap {
 use rayon::prelude::*;
 
 impl EdgeMap {
-    pub fn from_faces(faces: &[Face]) -> Self {
+    pub fn from_faces<F: crate::FaceView>(faces: &[F]) -> Self {
         #[cfg(feature = "rayon")]
         {
             let (counts, directions) = faces
@@ -56,12 +54,13 @@ impl EdgeMap {
         }
     }
 
-    fn update_maps(
+    fn update_maps<F: crate::FaceView>(
         counts: &mut FxHashMap<(usize, usize), u8>,
         directions: &mut FxHashMap<(usize, usize), u8>,
-        f: &Face,
+        f: &F,
     ) {
-        let edges = [(f.0, f.1), (f.1, f.2), (f.2, f.0)];
+        let (f0, f1, f2) = f.indices();
+        let edges = [(f0, f1), (f1, f2), (f2, f0)];
         for &(v1, v2) in &edges {
             // Directed: track the winding order
             *directions.entry((v1, v2)).or_insert(0) += 1;

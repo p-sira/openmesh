@@ -1,5 +1,10 @@
 # 0.2
 
+## 0.2.2
+
+- 
+- Add `to_inner` access method for `Mesh`, `Vertex`, and `Face`
+
 ## 0.2.1
 
 - Allow mesh to be built from generic iterators

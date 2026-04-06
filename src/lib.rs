@@ -7,14 +7,14 @@
 //! ```
 //! use openmesh::{Face, Mesh, MeshError, Vertex};
 //!
-//! let mesh = Mesh {
-//!     vertices: vec![
+//! let mesh = Mesh::new(
+//!     vec![
 //!         Vertex(0.0, 0.0, 0.0),
 //!         Vertex(1.0, 0.0, 0.0),
 //!         Vertex(0.0, 1.0, 0.0),
 //!     ],
-//!     faces: vec![Face(0, 1, 2)],
-//! };
+//!     vec![Face(0, 1, 2)],
+//! );
 //!
 //! assert_eq!(mesh.validate(), Err(MeshError::OpenEdges));
 //! ```
@@ -58,9 +58,9 @@ mod mesh;
 mod vertex;
 
 pub use core::{MeshError, MeshValidationReport};
-pub use face::Face;
+pub use face::{Face, FaceView};
 pub use mesh::Mesh;
-pub use vertex::Vertex;
+pub use vertex::{Vertex, VertexView};
 
 #[cfg(feature = "io")]
 mod io;

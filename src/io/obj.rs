@@ -1,6 +1,6 @@
 use crate::{Face, Mesh, Vertex, core::Float};
 
-impl<T: Float> Mesh<T> {
+impl<T: Float> Mesh<T, Vertex<T>, Face> {
     /// Construct a [`Mesh`] from an OBJ file.
     #[inline]
     pub fn from_obj<R: std::io::Read>(reader: &mut R) -> std::io::Result<Self> {
@@ -10,7 +10,7 @@ impl<T: Float> Mesh<T> {
     }
 }
 
-impl<T: Float> From<obj::ObjData> for Mesh<T> {
+impl<T: Float> From<obj::ObjData> for Mesh<T, Vertex<T>, Face> {
     fn from(data: obj::ObjData) -> Self {
         let vertices: Vec<Vertex<T>> = data
             .position

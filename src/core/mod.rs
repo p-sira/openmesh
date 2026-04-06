@@ -10,7 +10,7 @@ mod validation;
 use aabb::AABB;
 pub use edge_map::EdgeMap;
 pub use error::MeshError;
-pub use math::Float;
+pub use math::{Float, OptionalSend, OptionalSync};
 pub use report::MeshValidationReport;
 pub use validation::{
     check_consistent_normals, check_intersecting, check_inward_orientation, check_manifold,

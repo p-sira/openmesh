@@ -1,6 +1,6 @@
 [package]
 name = "openmesh"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 
 documentation = "https://docs.rs/openmesh"
@@ -52,6 +52,9 @@ required-features = ["io"]
 name = "test_large_mesh"
 path = "tests/test_large_mesh.rs"
 required-features = ["obj"]
+
+[lib]
+bench = false
 
 [[bench]]
 name = "mesh_benchmark"

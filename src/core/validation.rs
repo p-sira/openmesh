@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 
 use crate::{
-    Face, Vertex,
+    FaceView, Vertex, VertexView,
     core::{AABB, EdgeMap, Float, MeshError, MeshValidationReport},
 };
 
@@ -9,15 +9,21 @@ use crate::{
 use rayon::prelude::*;
 
 /// Check if the mesh has intersecting faces.
-pub fn check_intersecting<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> bool {
-    let compute_aabb_and_normal = |f: &Face| {
-        let v0 = &vertices[f.0];
-        let v1 = &vertices[f.1];
-        let v2 = &vertices[f.2];
+pub fn check_intersecting<T, V, F>(vertices: &[V], faces: &[F]) -> bool
+where
+    T: Float,
+    V: VertexView<T>,
+    F: FaceView,
+{
+    let compute_aabb_and_normal = |f: &F| {
+        let (f0, f1, f2) = f.indices();
+        let v0 = vertices[f0].to_vertex();
+        let v1 = vertices[f1].to_vertex();
+        let v2 = vertices[f2].to_vertex();
 
-        let aabb = AABB::from_triangle(v0, v1, v2);
+        let aabb = AABB::from_triangle_vertices(&v0, &v1, &v2);
 
-        let n = (v2.sub(v0)).cross(&v1.sub(v0));
+        let n = v2.sub(&v0).cross(&v1.sub(&v0));
         let n_sq = n.0 * n.0 + n.1 * n.1 + n.2 * n.2;
 
         let normal = if n_sq < T::from(1e-12).unwrap() {
@@ -40,12 +46,17 @@ pub fn check_intersecting<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> b
 }
 
 /// Internal implementation of self-intersection check using pre-calculated AABBs and normals.
-fn check_intersecting_internal<T: Float>(
-    vertices: &[Vertex<T>],
-    faces: &[Face],
+fn check_intersecting_internal<T, V, F>(
+    vertices: &[V],
+    faces: &[F],
     aabbs: &[AABB<T>],
     normals: &[Option<Vertex<T>>],
-) -> bool {
+) -> bool
+where
+    T: Float,
+    V: VertexView<T>,
+    F: FaceView,
+{
     let num_faces = faces.len();
 
     let check_face_pair = |i: usize| {
@@ -57,8 +68,8 @@ fn check_intersecting_internal<T: Float>(
                 continue;
             }
 
-            let f1 = &faces[i];
-            let f2 = &faces[j];
+            let f1 = faces[i].indices();
+            let f2 = faces[j].indices();
 
             // Skip adjacent faces
             if f1.0 == f2.0
@@ -74,22 +85,30 @@ fn check_intersecting_internal<T: Float>(
                 continue;
             }
 
-            let t1 = [&vertices[f1.0], &vertices[f1.1], &vertices[f1.2]];
-            let t2 = [&vertices[f2.0], &vertices[f2.1], &vertices[f2.2]];
+            let t1 = [
+                vertices[f1.0].to_vertex(),
+                vertices[f1.1].to_vertex(),
+                vertices[f1.2].to_vertex(),
+            ];
+            let t2 = [
+                vertices[f2.0].to_vertex(),
+                vertices[f2.1].to_vertex(),
+                vertices[f2.2].to_vertex(),
+            ];
 
             let n1 = &normals[i];
             let n2 = &normals[j];
 
-            if let Some(n2) = n2
-                && triangle_intersects_facet(t1, t2, n2)
-            {
-                return true;
+            if let Some(n2_val) = n2 {
+                if triangle_intersects_facet(&t1, &t2, n2_val) {
+                    return true;
+                }
             }
 
-            if let Some(n1) = n1
-                && triangle_intersects_facet(t2, t1, n1)
-            {
-                return true;
+            if let Some(n1_val) = n1 {
+                if triangle_intersects_facet(&t2, &t1, n1_val) {
+                    return true;
+                }
             }
         }
         false
@@ -106,27 +125,30 @@ fn check_intersecting_internal<T: Float>(
 }
 
 /// Check if triangle 1 intersects with the facet of triangle 2.
+#[inline]
 fn triangle_intersects_facet<T: Float>(
-    t1: [&Vertex<T>; 3],
-    t2: [&Vertex<T>; 3],
+    t1: &[Vertex<T>; 3],
+    t2: &[Vertex<T>; 3],
     n2: &Vertex<T>,
 ) -> bool {
     let eps = T::from(1e-6).unwrap();
 
     // 1. Calculate signed distances of all t1 vertices to t2's plane ONCE
-    let d0 = n2.dot(&t1[0].sub(t2[2]));
-    let d1 = n2.dot(&t1[1].sub(t2[2]));
-    let d2 = n2.dot(&t1[2].sub(t2[2]));
+    let d0 = n2.dot(&t1[0].sub(&t2[2]));
+    let d1 = n2.dot(&t1[1].sub(&t2[2]));
+    let d2 = n2.dot(&t1[2].sub(&t2[2]));
 
     // 2. Early exit: If all points are on the exact same side of the plane, it cannot intersect.
     if (d0 > eps && d1 > eps && d2 > eps) || (d0 < -eps && d1 < -eps && d2 < -eps) {
         return false;
     }
 
+    let t2_refs = [&t2[0], &t2[1], &t2[2]];
+
     // 3. Test the 3 segments using pre-calculated distances
-    check_segment_against_facet(t1[0], t1[1], d0, d1, t2, eps)
-        || check_segment_against_facet(t1[1], t1[2], d1, d2, t2, eps)
-        || check_segment_against_facet(t1[2], t1[0], d2, d0, t2, eps)
+    check_segment_against_facet(&t1[0], &t1[1], d0, d1, t2_refs, eps)
+        || check_segment_against_facet(&t1[1], &t1[2], d1, d2, t2_refs, eps)
+        || check_segment_against_facet(&t1[2], &t1[0], d2, d0, t2_refs, eps)
 }
 
 /// Check a single segment against a facet.
@@ -139,6 +161,7 @@ fn triangle_intersects_facet<T: Float>(
 /// - `d1`: The signed distance of the second endpoint to the facet.
 /// - `t2`: The vertices of the facet.
 /// - `eps`: The tolerance for the signed distances.
+#[inline]
 fn check_segment_against_facet<T: Float>(
     s0: &Vertex<T>,
     s1: &Vertex<T>,
@@ -174,14 +197,20 @@ fn check_segment_against_facet<T: Float>(
 /// Check if there are any zero-area faces in the mesh using geometric approach.
 ///
 /// `atol`: The tolerance for the area.
-pub fn check_zero_area_faces<T: Float>(vertices: &[Vertex<T>], faces: &[Face], atol: T) -> bool {
+pub fn check_zero_area_faces<T, V, F>(vertices: &[V], faces: &[F], atol: T) -> bool
+where
+    T: Float,
+    V: VertexView<T>,
+    F: FaceView,
+{
     let atol_sq = atol * atol;
 
-    let check_face = |face: &Face| {
-        let v0 = &vertices[face.0];
-        let v1 = &vertices[face.1];
-        let v2 = &vertices[face.2];
-        let cross = v1.sub(v0).cross(&v2.sub(v0));
+    let check_face = |face: &F| {
+        let (f0, f1, f2) = face.indices();
+        let v0 = vertices[f0].to_vertex();
+        let v1 = vertices[f1].to_vertex();
+        let v2 = vertices[f2].to_vertex();
+        let cross = v1.sub(&v0).cross(&v2.sub(&v0));
         let area_sq = cross.0 * cross.0 + cross.1 * cross.1 + cross.2 * cross.2;
         area_sq < atol_sq
     };
@@ -242,17 +271,23 @@ pub fn check_consistent_normals(map: &EdgeMap) -> bool {
 /// # Returns
 ///
 /// `true` if the mesh has inward orientation, `false` otherwise.
-pub fn check_inward_orientation<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> bool {
-    let calc_vol = |face: &Face| {
-        let v0 = &vertices[face.0];
-        let v1 = &vertices[face.1];
-        let v2 = &vertices[face.2];
-        let cross = v1.sub(v0).cross(&v2.sub(v0));
+pub fn check_inward_orientation<T, V, F>(vertices: &[V], faces: &[F]) -> bool
+where
+    T: Float,
+    V: VertexView<T>,
+    F: FaceView,
+{
+    let calc_vol = |face: &F| {
+        let (f0, f1, f2) = face.indices();
+        let v0 = vertices[f0].to_vertex();
+        let v1 = vertices[f1].to_vertex();
+        let v2 = vertices[f2].to_vertex();
+        let cross = v1.sub(&v0).cross(&v2.sub(&v0));
         v0.dot(&cross)
     };
 
     #[cfg(feature = "rayon")]
-    let total_vol: T = faces.par_iter().map(calc_vol).sum();
+    let total_vol: T = faces.into_par_iter().map(calc_vol).sum();
     #[cfg(not(feature = "rayon"))]
     let total_vol: T = faces.iter().map(calc_vol).sum();
 
@@ -262,26 +297,28 @@ pub fn check_inward_orientation<T: Float>(vertices: &[Vertex<T>], faces: &[Face]
 /// Check mesh properties and return a [MeshValidationReport].
 ///
 /// This function is faster than calling individual checks because of loop fusion.
-pub fn check_mesh<T: Float>(
-    vertices: &[Vertex<T>],
-    faces: &[Face],
-    atol: T,
-) -> MeshValidationReport {
+pub fn check_mesh<T, V, F>(vertices: &[V], faces: &[F], atol: T) -> MeshValidationReport
+where
+    T: Float,
+    V: VertexView<T>,
+    F: FaceView,
+{
     let mut report = MeshValidationReport::default();
 
     let atol_sq = atol * atol;
 
     // Combined pass 1: AABB, Normals (for intersection),
     // Volume (for inward check), Zero Area check
-    let compute_all = |f: &Face| {
-        let v0 = &vertices[f.0];
-        let v1 = &vertices[f.1];
-        let v2 = &vertices[f.2];
+    let compute_all = |f: &F| {
+        let (f0, f1, f2) = f.indices();
+        let v0 = vertices[f0].to_vertex();
+        let v1 = vertices[f1].to_vertex();
+        let v2 = vertices[f2].to_vertex();
 
-        let cross = v1.sub(v0).cross(&v2.sub(v0));
+        let cross = v1.sub(&v0).cross(&v2.sub(&v0));
         let norm_sq = cross.0 * cross.0 + cross.1 * cross.1 + cross.2 * cross.2;
 
-        let aabb = AABB::from_triangle(v0, v1, v2);
+        let aabb = AABB::from_triangle_vertices(&v0, &v1, &v2);
         let normal = if norm_sq < atol_sq {
             None
         } else {
@@ -302,7 +339,7 @@ pub fn check_mesh<T: Float>(
     #[cfg(feature = "rayon")]
     let (aabbs, (normals, (volumes, zero_area_flags))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) =
         faces
-            .par_iter()
+            .into_par_iter()
             .map(compute_all)
             .map(|(a, n, v, z)| (a, (n, (v, z))))
             .unzip();
@@ -342,11 +379,12 @@ pub fn check_mesh<T: Float>(
 }
 
 /// Validate the mesh and return a [MeshError] if it is not valid.
-pub fn validate_mesh<T: Float>(
-    vertices: &[Vertex<T>],
-    faces: &[Face],
-    atol: T,
-) -> Result<(), MeshError> {
+pub fn validate_mesh<T, V, F>(vertices: &[V], faces: &[F], atol: T) -> Result<(), MeshError>
+where
+    T: Float,
+    V: VertexView<T>,
+    F: FaceView,
+{
     if check_zero_area_faces(vertices, faces, atol) {
         return Err(MeshError::ZeroAreaFace);
     }
