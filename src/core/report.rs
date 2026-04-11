@@ -13,6 +13,7 @@ impl MeshValidationReport {
     /// Check if the mesh is valid: has no self-intersecting,
     /// no inward-normal, no inconsistent-normal,
     /// no non-manifold, no open-edge, and no zero-area-face.
+    #[inline]
     pub fn is_valid(&self) -> bool {
         !(self.self_intersecting
             || self.inward_normals

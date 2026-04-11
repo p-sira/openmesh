@@ -18,6 +18,7 @@ pub struct EdgeMap {
 use rayon::prelude::*;
 
 impl EdgeMap {
+    #[inline]
     pub fn from_faces(faces: &[Face]) -> Self {
         #[cfg(feature = "rayon")]
         {
@@ -56,6 +57,7 @@ impl EdgeMap {
         }
     }
 
+    #[inline]
     fn update_maps(
         counts: &mut FxHashMap<(usize, usize), u8>,
         directions: &mut FxHashMap<(usize, usize), u8>,

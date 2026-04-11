@@ -10,6 +10,7 @@ impl<T: Float> AABB<T> {
     /// Construct an axis-aligned bounding box from a triangle.
     ///
     /// Note: The bounding box is expanded by a small epsilon to account for floating-point precision errors.
+    #[inline]
     pub fn from_triangle(v0: &Vertex<T>, v1: &Vertex<T>, v2: &Vertex<T>) -> Self {
         let eps = T::epsilon() * T::from(10.0).unwrap();
 
@@ -27,6 +28,7 @@ impl<T: Float> AABB<T> {
         }
     }
 
+    #[inline]
     pub fn intersects(&self, other: &AABB<T>) -> bool {
         if self.max[0] < other.min[0] || self.min[0] > other.max[0] {
             return false;
