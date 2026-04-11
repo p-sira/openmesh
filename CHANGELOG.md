@@ -1,5 +1,10 @@
 # 0.2
 
+## 0.2.2
+
+- Implement more `From` and `Into` for `Vertex` struct
+- Inline more functions to improve performance
+
 ## 0.2.1
 
 - Allow mesh to be built from generic iterators
