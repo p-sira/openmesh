@@ -38,6 +38,9 @@ stl = ["io", "dep:stl_io"]
 obj = ["io", "dep:obj"]
 nalgebra = ["dep:nalgebra"]
 
+[lib]
+bench = false
+
 [[test]]
 name = "test_mesh"
 path = "tests/test_mesh.rs"
