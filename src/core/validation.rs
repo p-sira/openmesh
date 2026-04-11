@@ -40,6 +40,7 @@ pub fn check_intersecting<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> b
 }
 
 /// Internal implementation of self-intersection check using pre-calculated AABBs and normals.
+#[inline]
 fn check_intersecting_internal<T: Float>(
     vertices: &[Vertex<T>],
     faces: &[Face],
@@ -106,6 +107,7 @@ fn check_intersecting_internal<T: Float>(
 }
 
 /// Check if triangle 1 intersects with the facet of triangle 2.
+#[inline]
 fn triangle_intersects_facet<T: Float>(
     t1: [&Vertex<T>; 3],
     t2: [&Vertex<T>; 3],
@@ -139,6 +141,7 @@ fn triangle_intersects_facet<T: Float>(
 /// - `d1`: The signed distance of the second endpoint to the facet.
 /// - `t2`: The vertices of the facet.
 /// - `eps`: The tolerance for the signed distances.
+#[inline]
 fn check_segment_against_facet<T: Float>(
     s0: &Vertex<T>,
     s1: &Vertex<T>,
