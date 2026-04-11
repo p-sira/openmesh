@@ -24,6 +24,8 @@ fn bench_validation_suites(c: &mut Criterion) {
     let bad_intersection = load_mesh_stl("tests/test-data/monkey-intersecting.stl");
 
     let mut group = c.benchmark_group("mesh_validation");
+    group.measurement_time(std::time::Duration::from_secs(10));
+    group.sample_size(200);
 
     // 1. Full Validation
     for (name, mesh) in [("good", &good), ("bad_combined", &bad_all)] {
@@ -109,7 +111,8 @@ fn bench_validation_suites(c: &mut Criterion) {
 
 fn bench_large_mesh(c: &mut Criterion) {
     let mut group = c.benchmark_group("mesh_validation");
-    group.sample_size(10);
+    group.measurement_time(std::time::Duration::from_secs(20));
+    group.sample_size(20);
 
     let bad_intersection_large = load_mesh_obj("tests/test-data/skull.obj");
     group.bench_with_input(
