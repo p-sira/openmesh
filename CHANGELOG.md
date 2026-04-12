@@ -1,5 +1,9 @@
 # 0.2
 
+## 0.2.3
+
+- Implement `ToString` for `MeshError`
+
 ## 0.2.2
 
 - Implement more `From` and `Into` for `Vertex` struct
