@@ -1,3 +1,6 @@
+#[cfg(feature = "std")]
+use std::fmt::Display;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Error type for mesh validation.
 pub enum MeshError {
@@ -10,15 +13,16 @@ pub enum MeshError {
 }
 
 #[cfg(feature = "std")]
-impl ToString for MeshError {
-    fn to_string(&self) -> String {
-        match self {
+impl Display for MeshError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let err_str = match self {
             MeshError::OpenEdges => "Open edges",
             MeshError::NonManifold => "Non-manifold",
             MeshError::SelfIntersecting => "Self-intersecting",
             MeshError::ZeroAreaFace => "Zero area face",
             MeshError::InconsistentNormals => "Inconsistent normals",
             MeshError::InwardNormals => "Inward normals",
-        }.to_string()
+        };
+        writeln!(f, "{}", err_str)
     }
 }

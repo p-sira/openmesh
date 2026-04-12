@@ -2,7 +2,7 @@
 
 ## 0.2.3
 
-- Implement `ToString` for `MeshError`
+- Implement `Display` for `MeshError`
 
 ## 0.2.2
 
