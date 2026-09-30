@@ -231,7 +231,7 @@ fn check_zero_area_faces_unchecked<T: Float>(
 /// - `Err(MeshError::NonManifold)` if the mesh is non-manifold (more than 2 edges incident to a vertex)
 /// - `Err(MeshError::OpenEdges)` if the mesh has open edges (isolated vertices)
 pub fn check_manifold(map: &EdgeMap) -> Result<(), MeshError> {
-    let check_counts = |(&(_v1, _v2), &count): (&(usize, usize), &u8)| {
+    let check_counts = |(&(_v1, _v2), &count): (&(usize, usize), &usize)| {
         if count > 2 {
             return Some(Err(MeshError::NonManifold));
         }
@@ -252,7 +252,7 @@ pub fn check_manifold(map: &EdgeMap) -> Result<(), MeshError> {
 /// Check if the mesh has consistent normals.
 #[inline]
 pub fn check_consistent_normals(map: &EdgeMap) -> bool {
-    let check_dir = |((_v1, _v2), &count): (&(usize, usize), &u8)| count <= 1;
+    let check_dir = |((_v1, _v2), &count): (&(usize, usize), &usize)| count <= 1;
 
     #[cfg(feature = "rayon")]
     {

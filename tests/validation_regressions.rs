@@ -1,4 +1,4 @@
-use openmesh::{Mesh, MeshError, Vertex};
+use openmesh::{Face, Mesh, MeshError, Vertex, core::EdgeMap};
 
 #[test]
 fn invalid_face_index_returns_an_error() {
@@ -61,4 +61,19 @@ fn assert_error<E: core::error::Error>() {}
 #[test]
 fn mesh_error_implements_core_error() {
     assert_error::<MeshError>();
+}
+
+#[test]
+fn edge_counts_do_not_wrap_at_u8_boundary() {
+    for face_count in [256, 257, 258] {
+        let faces = vec![Face(0, 1, 2); face_count];
+        let map = EdgeMap::from_faces(&faces);
+
+        assert_eq!(map.counts[&(0, 1)], face_count);
+        assert_eq!(map.directions[&(0, 1)], face_count);
+        assert_eq!(
+            openmesh::core::check_manifold(&map),
+            Err(MeshError::NonManifold)
+        );
+    }
 }
