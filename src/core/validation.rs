@@ -28,14 +28,14 @@ fn check_intersecting_unchecked<T: Float>(vertices: &[Vertex<T>], faces: &[Face]
 
         let aabb = AABB::from_triangle(v0, v1, v2);
 
-        let n = (v2.sub(v0)).cross(&v1.sub(v0));
+        let n = v1.sub(v0).cross(&v2.sub(v0));
         let n_sq = n.0 * n.0 + n.1 * n.1 + n.2 * n.2;
 
-        let normal = if n_sq < T::from(1e-12).unwrap() {
+        let normal = if n_sq <= T::from(1e-12).unwrap() {
             None
         } else {
-            let inv_n_sq = T::one() / n_sq;
-            Some(Vertex(n.0 * inv_n_sq, n.1 * inv_n_sq, n.2 * inv_n_sq))
+            let inv_n = T::one() / n_sq.sqrt();
+            Some(Vertex(n.0 * inv_n, n.1 * inv_n, n.2 * inv_n))
         };
 
         (aabb, normal)
@@ -344,11 +344,11 @@ pub fn check_mesh_with_tolerance<T: Float>(
         let normal = if is_zero {
             None
         } else {
-            let inv_norm_sq = T::one() / norm_sq;
+            let inv_norm = T::one() / norm_sq.sqrt();
             Some(Vertex(
-                cross.0 * inv_norm_sq,
-                cross.1 * inv_norm_sq,
-                cross.2 * inv_norm_sq,
+                cross.0 * inv_norm,
+                cross.1 * inv_norm,
+                cross.2 * inv_norm,
             ))
         };
 

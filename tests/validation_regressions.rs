@@ -130,3 +130,24 @@ fn relative_tolerance_includes_equality() {
         Err(MeshError::ZeroAreaFace)
     );
 }
+
+#[test]
+fn intersection_is_preserved_when_geometry_is_scaled_up() {
+    for scale in [1.0, 1e8] {
+        let vertices = [
+            [-2.0, -2.0, 0.0],
+            [2.0, -2.0, 0.0],
+            [0.0, 2.0, 0.0],
+            [0.2, 0.0, -1.0],
+            [0.2, 0.0, 1.0],
+            [0.5, 1.0, 1.0],
+        ]
+        .map(|vertex| vertex.map(|coordinate| coordinate * scale));
+        let mesh = Mesh::<f64>::new(vertices, [[0, 1, 2], [3, 4, 5]]);
+
+        assert_eq!(
+            mesh.check_self_intersecting(),
+            Err(MeshError::SelfIntersecting)
+        );
+    }
+}
