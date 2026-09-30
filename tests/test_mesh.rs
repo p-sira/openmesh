@@ -5,7 +5,7 @@ use std::fs::File;
 fn test_mesh_validation_perfect() {
     let mut file = File::open("tests/test-data/perfect-suzanne.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
-    assert!(mesh.check_mesh(1e-4).is_valid());
+    assert!(mesh.check_mesh(1e-4).unwrap().is_valid());
     assert_eq!(mesh.validate(), Ok(()));
 }
 
@@ -16,7 +16,7 @@ fn test_mesh_validation_bad_normal() {
 
     let mut file = File::open("tests/test-data/monkey-bad-normal.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
-    assert_eq!(mesh.check_mesh(1e-4), proper_report);
+    assert_eq!(mesh.check_mesh(1e-4).unwrap(), proper_report);
     assert_eq!(mesh.validate(), Err(MeshError::InconsistentNormals));
 }
 
@@ -27,7 +27,7 @@ fn test_mesh_validation_intersecting() {
 
     let mut file = File::open("tests/test-data/monkey-intersecting.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
-    assert_eq!(mesh.check_mesh(1e-4), proper_report);
+    assert_eq!(mesh.check_mesh(1e-4).unwrap(), proper_report);
     assert_eq!(mesh.validate(), Err(MeshError::SelfIntersecting));
 }
 
@@ -38,7 +38,7 @@ fn test_mesh_validation_open_edges() {
 
     let mut file = File::open("tests/test-data/monkey-open-edges.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
-    assert_eq!(mesh.check_mesh(1e-4), proper_report);
+    assert_eq!(mesh.check_mesh(1e-4).unwrap(), proper_report);
     assert_eq!(mesh.validate(), Err(MeshError::OpenEdges));
 }
 
@@ -51,7 +51,7 @@ fn test_mesh_validation_non_manifold() {
 
     let mut file = File::open("tests/test-data/monkey-non-manifold.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
-    assert_eq!(mesh.check_mesh(1e-4), proper_report);
+    assert_eq!(mesh.check_mesh(1e-4).unwrap(), proper_report);
     let err = mesh.validate().unwrap_err();
     assert!(err == MeshError::NonManifold || err == MeshError::OpenEdges);
 }
@@ -63,7 +63,7 @@ fn test_mesh_validation_normal_inside() {
 
     let mut file = File::open("tests/test-data/monkey-normal-inward.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
-    assert_eq!(mesh.check_mesh(1e-4), proper_report);
+    assert_eq!(mesh.check_mesh(1e-4).unwrap(), proper_report);
     assert_eq!(mesh.validate(), Err(MeshError::InwardNormals));
 }
 
@@ -74,7 +74,7 @@ fn test_mesh_validation_zero_faces() {
 
     let mut file = File::open("tests/test-data/monkey-zero-faces.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
-    assert_eq!(mesh.check_mesh(1e-4), proper_report);
+    assert_eq!(mesh.check_mesh(1e-4).unwrap(), proper_report);
     assert_eq!(mesh.validate(), Err(MeshError::ZeroAreaFace));
 }
 
@@ -90,5 +90,5 @@ fn test_mesh_validation_bad_suzanne() {
     let mut file = File::open("tests/test-data/bad-suzanne.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();
     assert!(mesh.validate().is_err());
-    assert_eq!(mesh.check_mesh(1e-4), proper_report);
+    assert_eq!(mesh.check_mesh(1e-4).unwrap(), proper_report);
 }

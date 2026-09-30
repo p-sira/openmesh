@@ -1,9 +1,14 @@
-#[cfg(feature = "std")]
-use std::fmt::Display;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// Error type for mesh validation.
 pub enum MeshError {
+    InvalidVertexIndex {
+        face_index: usize,
+        vertex_index: usize,
+    },
+    NonFiniteVertex {
+        vertex_index: usize,
+    },
+    InvalidTolerance,
     OpenEdges,
     NonManifold,
     SelfIntersecting,
@@ -12,17 +17,28 @@ pub enum MeshError {
     InwardNormals,
 }
 
-#[cfg(feature = "std")]
-impl Display for MeshError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let err_str = match self {
-            MeshError::OpenEdges => "Open edges",
-            MeshError::NonManifold => "Non-manifold",
-            MeshError::SelfIntersecting => "Self-intersecting",
-            MeshError::ZeroAreaFace => "Zero area face",
-            MeshError::InconsistentNormals => "Inconsistent normals",
-            MeshError::InwardNormals => "Inward normals",
-        };
-        writeln!(f, "{}", err_str)
+impl core::fmt::Display for MeshError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            MeshError::InvalidVertexIndex {
+                face_index,
+                vertex_index,
+            } => write!(
+                f,
+                "face {face_index} references missing vertex {vertex_index}"
+            ),
+            MeshError::NonFiniteVertex { vertex_index } => {
+                write!(f, "vertex {vertex_index} contains a non-finite coordinate")
+            }
+            MeshError::InvalidTolerance => write!(f, "tolerance must be finite and non-negative"),
+            MeshError::OpenEdges => write!(f, "open edges"),
+            MeshError::NonManifold => write!(f, "non-manifold"),
+            MeshError::SelfIntersecting => write!(f, "self-intersecting"),
+            MeshError::ZeroAreaFace => write!(f, "zero area face"),
+            MeshError::InconsistentNormals => write!(f, "inconsistent normals"),
+            MeshError::InwardNormals => write!(f, "inward normals"),
+        }
     }
 }
+
+impl core::error::Error for MeshError {}

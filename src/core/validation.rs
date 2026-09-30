@@ -9,7 +9,16 @@ use crate::{
 use rayon::prelude::*;
 
 /// Check if the mesh has intersecting faces.
-pub fn check_intersecting<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> bool {
+pub fn check_intersecting<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+) -> Result<bool, MeshError> {
+    validate_mesh_input(vertices, faces)?;
+    Ok(check_intersecting_unchecked(vertices, faces))
+}
+
+#[inline]
+fn check_intersecting_unchecked<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> bool {
     let compute_aabb_and_normal = |f: &Face| {
         let v0 = &vertices[f.0];
         let v1 = &vertices[f.1];
@@ -177,7 +186,22 @@ fn check_segment_against_facet<T: Float>(
 /// Check if there are any zero-area faces in the mesh using geometric approach.
 ///
 /// `atol`: The tolerance for the area.
-pub fn check_zero_area_faces<T: Float>(vertices: &[Vertex<T>], faces: &[Face], atol: T) -> bool {
+pub fn check_zero_area_faces<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+    atol: T,
+) -> Result<bool, MeshError> {
+    validate_tolerance(atol)?;
+    validate_mesh_input(vertices, faces)?;
+    Ok(check_zero_area_faces_unchecked(vertices, faces, atol))
+}
+
+#[inline]
+fn check_zero_area_faces_unchecked<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+    atol: T,
+) -> bool {
     let atol_sq = atol * atol;
 
     let check_face = |face: &Face| {
@@ -245,7 +269,16 @@ pub fn check_consistent_normals(map: &EdgeMap) -> bool {
 /// # Returns
 ///
 /// `true` if the mesh has inward orientation, `false` otherwise.
-pub fn check_inward_orientation<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> bool {
+pub fn check_inward_orientation<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+) -> Result<bool, MeshError> {
+    validate_mesh_input(vertices, faces)?;
+    Ok(check_inward_orientation_unchecked(vertices, faces))
+}
+
+#[inline]
+fn check_inward_orientation_unchecked<T: Float>(vertices: &[Vertex<T>], faces: &[Face]) -> bool {
     let calc_vol = |face: &Face| {
         let v0 = &vertices[face.0];
         let v1 = &vertices[face.1];
@@ -269,7 +302,9 @@ pub fn check_mesh<T: Float>(
     vertices: &[Vertex<T>],
     faces: &[Face],
     atol: T,
-) -> MeshValidationReport {
+) -> Result<MeshValidationReport, MeshError> {
+    validate_tolerance(atol)?;
+    validate_mesh_input(vertices, faces)?;
     let mut report = MeshValidationReport::default();
 
     let atol_sq = atol * atol;
@@ -341,7 +376,7 @@ pub fn check_mesh<T: Float>(
     // Pass 4: Self-intersection (heavy)
     report.self_intersecting = check_intersecting_internal(vertices, faces, &aabbs, &normals);
 
-    report
+    Ok(report)
 }
 
 /// Validate the mesh and return a [MeshError] if it is not valid.
@@ -350,7 +385,10 @@ pub fn validate_mesh<T: Float>(
     faces: &[Face],
     atol: T,
 ) -> Result<(), MeshError> {
-    if check_zero_area_faces(vertices, faces, atol) {
+    validate_tolerance(atol)?;
+    validate_mesh_input(vertices, faces)?;
+
+    if check_zero_area_faces_unchecked(vertices, faces, atol) {
         return Err(MeshError::ZeroAreaFace);
     }
 
@@ -361,13 +399,46 @@ pub fn validate_mesh<T: Float>(
         return Err(MeshError::InconsistentNormals);
     }
 
-    if check_inward_orientation(vertices, faces) {
+    if check_inward_orientation_unchecked(vertices, faces) {
         return Err(MeshError::InwardNormals);
     }
 
-    if check_intersecting(vertices, faces) {
+    if check_intersecting_unchecked(vertices, faces) {
         return Err(MeshError::SelfIntersecting);
     }
 
     Ok(())
+}
+
+pub(crate) fn validate_mesh_input<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+) -> Result<(), MeshError> {
+    for (vertex_index, vertex) in vertices.iter().enumerate() {
+        if !vertex.0.is_finite() || !vertex.1.is_finite() || !vertex.2.is_finite() {
+            return Err(MeshError::NonFiniteVertex { vertex_index });
+        }
+    }
+
+    for (face_index, face) in faces.iter().enumerate() {
+        for vertex_index in [face.0, face.1, face.2] {
+            if vertex_index >= vertices.len() {
+                return Err(MeshError::InvalidVertexIndex {
+                    face_index,
+                    vertex_index,
+                });
+            }
+        }
+    }
+
+    Ok(())
+}
+
+#[inline]
+fn validate_tolerance<T: Float>(tolerance: T) -> Result<(), MeshError> {
+    if tolerance.is_finite() && tolerance >= T::zero() {
+        Ok(())
+    } else {
+        Err(MeshError::InvalidTolerance)
+    }
 }

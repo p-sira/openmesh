@@ -12,6 +12,7 @@ pub use edge_map::EdgeMap;
 pub use error::MeshError;
 pub use math::Float;
 pub use report::MeshValidationReport;
+pub(crate) use validation::validate_mesh_input;
 pub use validation::{
     check_consistent_normals, check_intersecting, check_inward_orientation, check_manifold,
     check_mesh, check_zero_area_faces, validate_mesh,
