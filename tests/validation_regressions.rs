@@ -1,4 +1,4 @@
-use openmesh::{Face, Mesh, MeshError, Vertex, core::EdgeMap};
+use openmesh::{Face, FaceTolerance, Mesh, MeshError, Vertex, core::EdgeMap};
 
 #[test]
 fn invalid_face_index_returns_an_error() {
@@ -76,4 +76,57 @@ fn edge_counts_do_not_wrap_at_u8_boundary() {
             Err(MeshError::NonManifold)
         );
     }
+}
+
+#[test]
+fn area_tolerance_uses_triangle_area() {
+    let mesh = Mesh::<f64>::new(
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.00015, 0.0]],
+        [[0, 1, 2]],
+    );
+
+    assert_eq!(
+        mesh.check_zero_area_faces(0.0001),
+        Err(MeshError::ZeroAreaFace)
+    );
+}
+
+#[test]
+fn zero_tolerance_rejects_exact_degeneracy() {
+    let mesh = Mesh::<f64>::new(
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]],
+        [[0, 1, 2]],
+    );
+
+    assert_eq!(
+        mesh.check_zero_area_faces(0.0),
+        Err(MeshError::ZeroAreaFace)
+    );
+}
+
+#[test]
+fn relative_tolerance_is_per_face_and_scale_invariant() {
+    let tolerance = FaceTolerance::new(0.0, 0.01).unwrap();
+
+    for scale in [1e-6, 1.0, 1e6] {
+        let mesh = Mesh::<f64>::new(
+            [[0.0, 0.0, 0.0], [scale, 0.0, 0.0], [0.0, scale, 0.0]],
+            [[0, 1, 2]],
+        );
+        assert_eq!(mesh.check_zero_area_faces_with_tolerance(tolerance), Ok(()));
+    }
+}
+
+#[test]
+fn relative_tolerance_includes_equality() {
+    let mesh = Mesh::<f64>::new(
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+        [[0, 1, 2]],
+    );
+    let tolerance = FaceTolerance::new(0.0, 0.5).unwrap();
+
+    assert_eq!(
+        mesh.check_zero_area_faces_with_tolerance(tolerance),
+        Err(MeshError::ZeroAreaFace)
+    );
 }

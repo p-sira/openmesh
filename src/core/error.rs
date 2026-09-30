@@ -9,6 +9,9 @@ pub enum MeshError {
         vertex_index: usize,
     },
     InvalidTolerance,
+    NumericalFailure {
+        face_index: usize,
+    },
     OpenEdges,
     NonManifold,
     SelfIntersecting,
@@ -31,6 +34,9 @@ impl core::fmt::Display for MeshError {
                 write!(f, "vertex {vertex_index} contains a non-finite coordinate")
             }
             MeshError::InvalidTolerance => write!(f, "tolerance must be finite and non-negative"),
+            MeshError::NumericalFailure { face_index } => {
+                write!(f, "numerical failure while processing face {face_index}")
+            }
             MeshError::OpenEdges => write!(f, "open edges"),
             MeshError::NonManifold => write!(f, "non-manifold"),
             MeshError::SelfIntersecting => write!(f, "self-intersecting"),

@@ -2,8 +2,10 @@ use alloc::vec::Vec;
 
 use crate::{
     Face, Vertex,
-    core::{AABB, EdgeMap, Float, MeshError, MeshValidationReport},
+    core::{AABB, EdgeMap, FaceTolerance, Float, MeshError, MeshValidationReport},
 };
+
+use super::tolerance::is_degenerate;
 
 #[cfg(feature = "rayon")]
 use rayon::prelude::*;
@@ -191,35 +193,46 @@ pub fn check_zero_area_faces<T: Float>(
     faces: &[Face],
     atol: T,
 ) -> Result<bool, MeshError> {
-    validate_tolerance(atol)?;
+    let tolerance = FaceTolerance::from_area(atol)?;
+    check_zero_area_faces_with_tolerance(vertices, faces, tolerance)
+}
+
+/// Check for degenerate faces using a mixed per-face tolerance.
+#[inline]
+pub fn check_zero_area_faces_with_tolerance<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+    tolerance: FaceTolerance<T>,
+) -> Result<bool, MeshError> {
     validate_mesh_input(vertices, faces)?;
-    Ok(check_zero_area_faces_unchecked(vertices, faces, atol))
+    Ok(classify_faces(vertices, faces, tolerance)?
+        .into_iter()
+        .any(|is_zero| is_zero))
 }
 
 #[inline]
-fn check_zero_area_faces_unchecked<T: Float>(
+fn classify_faces<T: Float>(
     vertices: &[Vertex<T>],
     faces: &[Face],
-    atol: T,
-) -> bool {
-    let atol_sq = atol * atol;
-
-    let check_face = |face: &Face| {
-        let v0 = &vertices[face.0];
-        let v1 = &vertices[face.1];
-        let v2 = &vertices[face.2];
-        let cross = v1.sub(v0).cross(&v2.sub(v0));
-        let area_sq = cross.0 * cross.0 + cross.1 * cross.1 + cross.2 * cross.2;
-        area_sq < atol_sq
+    tolerance: FaceTolerance<T>,
+) -> Result<Vec<bool>, MeshError> {
+    let classify = |(face_index, face): (usize, &Face)| {
+        is_degenerate(
+            &vertices[face.0],
+            &vertices[face.1],
+            &vertices[face.2],
+            tolerance,
+        )
+        .ok_or(MeshError::NumericalFailure { face_index })
     };
 
     #[cfg(feature = "rayon")]
     {
-        faces.par_iter().any(check_face)
+        faces.par_iter().enumerate().map(classify).collect()
     }
     #[cfg(not(feature = "rayon"))]
     {
-        faces.iter().any(check_face)
+        faces.iter().enumerate().map(classify).collect()
     }
 }
 
@@ -303,15 +316,23 @@ pub fn check_mesh<T: Float>(
     faces: &[Face],
     atol: T,
 ) -> Result<MeshValidationReport, MeshError> {
-    validate_tolerance(atol)?;
+    let tolerance = FaceTolerance::from_area(atol)?;
+    check_mesh_with_tolerance(vertices, faces, tolerance)
+}
+
+/// Check mesh properties using a mixed per-face degeneracy tolerance.
+pub fn check_mesh_with_tolerance<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+    tolerance: FaceTolerance<T>,
+) -> Result<MeshValidationReport, MeshError> {
     validate_mesh_input(vertices, faces)?;
     let mut report = MeshValidationReport::default();
-
-    let atol_sq = atol * atol;
+    let zero_area_flags = classify_faces(vertices, faces, tolerance)?;
 
     // Combined pass 1: AABB, Normals (for intersection),
     // Volume (for inward check), Zero Area check
-    let compute_all = |f: &Face| {
+    let compute_all = |(f, &is_zero): (&Face, &bool)| {
         let v0 = &vertices[f.0];
         let v1 = &vertices[f.1];
         let v2 = &vertices[f.2];
@@ -320,7 +341,7 @@ pub fn check_mesh<T: Float>(
         let norm_sq = cross.0 * cross.0 + cross.1 * cross.1 + cross.2 * cross.2;
 
         let aabb = AABB::from_triangle(v0, v1, v2);
-        let normal = if norm_sq < atol_sq {
+        let normal = if is_zero {
             None
         } else {
             let inv_norm_sq = T::one() / norm_sq;
@@ -332,26 +353,24 @@ pub fn check_mesh<T: Float>(
         };
 
         let vol = v0.dot(&cross);
-        let is_zero = norm_sq < atol_sq;
-
-        (aabb, normal, vol, is_zero)
+        (aabb, normal, vol)
     };
 
     #[cfg(feature = "rayon")]
-    let (aabbs, (normals, (volumes, zero_area_flags))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) =
-        faces
-            .par_iter()
-            .map(compute_all)
-            .map(|(a, n, v, z)| (a, (n, (v, z))))
-            .unzip();
+    let (aabbs, (normals, volumes)): (Vec<_>, (Vec<_>, Vec<_>)) = faces
+        .par_iter()
+        .zip(zero_area_flags.par_iter())
+        .map(compute_all)
+        .map(|(a, n, v)| (a, (n, v)))
+        .unzip();
 
     #[cfg(not(feature = "rayon"))]
-    let (aabbs, (normals, (volumes, zero_area_flags))): (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))) =
-        faces
-            .iter()
-            .map(compute_all)
-            .map(|(a, n, v, z)| (a, (n, (v, z))))
-            .unzip();
+    let (aabbs, (normals, volumes)): (Vec<_>, (Vec<_>, Vec<_>)) = faces
+        .iter()
+        .zip(zero_area_flags.iter())
+        .map(compute_all)
+        .map(|(a, n, v)| (a, (n, v)))
+        .unzip();
 
     let total_vol: T = volumes.into_iter().sum();
     report.inward_normals = total_vol < T::zero();
@@ -385,10 +404,22 @@ pub fn validate_mesh<T: Float>(
     faces: &[Face],
     atol: T,
 ) -> Result<(), MeshError> {
-    validate_tolerance(atol)?;
+    let tolerance = FaceTolerance::from_area(atol)?;
+    validate_mesh_with_tolerance(vertices, faces, tolerance)
+}
+
+/// Validate a mesh using a mixed per-face degeneracy tolerance.
+pub fn validate_mesh_with_tolerance<T: Float>(
+    vertices: &[Vertex<T>],
+    faces: &[Face],
+    tolerance: FaceTolerance<T>,
+) -> Result<(), MeshError> {
     validate_mesh_input(vertices, faces)?;
 
-    if check_zero_area_faces_unchecked(vertices, faces, atol) {
+    if classify_faces(vertices, faces, tolerance)?
+        .into_iter()
+        .any(|is_zero| is_zero)
+    {
         return Err(MeshError::ZeroAreaFace);
     }
 
@@ -432,13 +463,4 @@ pub(crate) fn validate_mesh_input<T: Float>(
     }
 
     Ok(())
-}
-
-#[inline]
-fn validate_tolerance<T: Float>(tolerance: T) -> Result<(), MeshError> {
-    if tolerance.is_finite() && tolerance >= T::zero() {
-        Ok(())
-    } else {
-        Err(MeshError::InvalidTolerance)
-    }
 }

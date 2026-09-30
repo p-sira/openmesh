@@ -2,7 +2,7 @@ use alloc::vec::Vec;
 
 use crate::{
     Face, Vertex,
-    core::{self, Float, MeshError},
+    core::{self, FaceTolerance, Float, MeshError},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -40,13 +40,38 @@ impl<T: Float> Mesh<T> {
     }
 
     #[inline]
+    pub fn check_mesh_with_tolerance(
+        &self,
+        tolerance: FaceTolerance<T>,
+    ) -> Result<core::MeshValidationReport, MeshError> {
+        core::check_mesh_with_tolerance(&self.vertices, &self.faces, tolerance)
+    }
+
+    #[inline]
     pub fn validate_with_atol(&self, atol: T) -> Result<(), MeshError> {
         core::validate_mesh(&self.vertices, &self.faces, atol)
     }
 
     #[inline]
+    pub fn validate_with_tolerance(&self, tolerance: FaceTolerance<T>) -> Result<(), MeshError> {
+        core::validate_mesh_with_tolerance(&self.vertices, &self.faces, tolerance)
+    }
+
+    #[inline]
     pub fn check_zero_area_faces(&self, atol: T) -> Result<(), MeshError> {
         if core::check_zero_area_faces(&self.vertices, &self.faces, atol)? {
+            Err(MeshError::ZeroAreaFace)
+        } else {
+            Ok(())
+        }
+    }
+
+    #[inline]
+    pub fn check_zero_area_faces_with_tolerance(
+        &self,
+        tolerance: FaceTolerance<T>,
+    ) -> Result<(), MeshError> {
+        if core::check_zero_area_faces_with_tolerance(&self.vertices, &self.faces, tolerance)? {
             Err(MeshError::ZeroAreaFace)
         } else {
             Ok(())

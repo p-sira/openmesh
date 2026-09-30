@@ -70,7 +70,7 @@ fn test_mesh_validation_normal_inside() {
 #[test]
 fn test_mesh_validation_zero_faces() {
     let mut proper_report = MeshValidationReport::default();
-    proper_report.zero_area_faces = 20;
+    proper_report.zero_area_faces = 47;
 
     let mut file = File::open("tests/test-data/monkey-zero-faces.stl").unwrap();
     let mesh: Mesh = Mesh::from_stl(&mut file).unwrap();

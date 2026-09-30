@@ -57,7 +57,7 @@ mod face;
 mod mesh;
 mod vertex;
 
-pub use core::{MeshError, MeshValidationReport};
+pub use core::{FaceTolerance, MeshError, MeshValidationReport};
 pub use face::Face;
 pub use mesh::Mesh;
 pub use vertex::Vertex;
