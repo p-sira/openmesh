@@ -151,3 +151,40 @@ fn intersection_is_preserved_when_geometry_is_scaled_up() {
         );
     }
 }
+
+#[test]
+fn coplanar_containment_is_an_intersection() {
+    let mesh = Mesh::<f64>::new(
+        [
+            [0.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            [0.0, 2.0, 0.0],
+            [0.2, 0.2, 0.0],
+            [0.8, 0.2, 0.0],
+            [0.2, 0.8, 0.0],
+        ],
+        [[0, 1, 2], [3, 4, 5]],
+    );
+
+    assert_eq!(
+        mesh.check_self_intersecting(),
+        Err(MeshError::SelfIntersecting)
+    );
+}
+
+#[test]
+fn disjoint_coplanar_triangles_do_not_intersect() {
+    let mesh = Mesh::<f64>::new(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [2.0, 2.0, 0.0],
+            [3.0, 2.0, 0.0],
+            [2.0, 3.0, 0.0],
+        ],
+        [[0, 1, 2], [3, 4, 5]],
+    );
+
+    assert_eq!(mesh.check_self_intersecting(), Ok(()));
+}

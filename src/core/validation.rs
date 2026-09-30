@@ -131,6 +131,10 @@ fn triangle_intersects_facet<T: Float>(
     let d1 = n2.dot(&t1[1].sub(t2[2]));
     let d2 = n2.dot(&t1[2].sub(t2[2]));
 
+    if d0.abs() <= eps && d1.abs() <= eps && d2.abs() <= eps {
+        return coplanar_triangles_overlap(t1, t2, n2);
+    }
+
     // 2. Early exit: If all points are on the exact same side of the plane, it cannot intersect.
     if (d0 > eps && d1 > eps && d2 > eps) || (d0 < -eps && d1 < -eps && d2 < -eps) {
         return false;
@@ -140,6 +144,117 @@ fn triangle_intersects_facet<T: Float>(
     check_segment_against_facet(t1[0], t1[1], d0, d1, t2, eps)
         || check_segment_against_facet(t1[1], t1[2], d1, d2, t2, eps)
         || check_segment_against_facet(t1[2], t1[0], d2, d0, t2, eps)
+}
+
+#[inline]
+fn coplanar_triangles_overlap<T: Float>(
+    t1: [&Vertex<T>; 3],
+    t2: [&Vertex<T>; 3],
+    normal: &Vertex<T>,
+) -> bool {
+    let axis = dominant_axis(normal);
+    let origin = project(t2[0], axis);
+    let mut a = [(T::zero(), T::zero()); 3];
+    let mut b = [(T::zero(), T::zero()); 3];
+    let mut scale = T::zero();
+
+    for index in 0..3 {
+        a[index] = subtract_2d(project(t1[index], axis), origin);
+        b[index] = subtract_2d(project(t2[index], axis), origin);
+        scale = scale
+            .max(a[index].0.abs())
+            .max(a[index].1.abs())
+            .max(b[index].0.abs())
+            .max(b[index].1.abs());
+    }
+
+    if !scale.is_finite() || scale == T::zero() {
+        return false;
+    }
+    for point in a.iter_mut().chain(b.iter_mut()) {
+        point.0 = point.0 / scale;
+        point.1 = point.1 / scale;
+    }
+
+    let eps = T::epsilon() * T::from(32.0).unwrap();
+    for (a0, a1) in [(0, 1), (1, 2), (2, 0)] {
+        for (b0, b1) in [(0, 1), (1, 2), (2, 0)] {
+            if segments_intersect_2d(a[a0], a[a1], b[b0], b[b1], eps) {
+                return true;
+            }
+        }
+    }
+
+    point_in_triangle_2d(a[0], b, eps) || point_in_triangle_2d(b[0], a, eps)
+}
+
+#[inline]
+fn dominant_axis<T: Float>(normal: &Vertex<T>) -> usize {
+    let x = normal.0.abs();
+    let y = normal.1.abs();
+    let z = normal.2.abs();
+    if x >= y && x >= z {
+        0
+    } else if y >= z {
+        1
+    } else {
+        2
+    }
+}
+
+#[inline]
+fn project<T: Float>(vertex: &Vertex<T>, axis: usize) -> (T, T) {
+    match axis {
+        0 => (vertex.1, vertex.2),
+        1 => (vertex.0, vertex.2),
+        _ => (vertex.0, vertex.1),
+    }
+}
+
+#[inline]
+fn subtract_2d<T: Float>(point: (T, T), origin: (T, T)) -> (T, T) {
+    (point.0 - origin.0, point.1 - origin.1)
+}
+
+#[inline]
+fn orient_2d<T: Float>(a: (T, T), b: (T, T), c: (T, T)) -> T {
+    (b.0 - a.0) * (c.1 - a.1) - (b.1 - a.1) * (c.0 - a.0)
+}
+
+#[inline]
+fn point_on_segment_2d<T: Float>(point: (T, T), a: (T, T), b: (T, T), eps: T) -> bool {
+    orient_2d(a, b, point).abs() <= eps
+        && point.0 >= a.0.min(b.0) - eps
+        && point.0 <= a.0.max(b.0) + eps
+        && point.1 >= a.1.min(b.1) - eps
+        && point.1 <= a.1.max(b.1) + eps
+}
+
+#[inline]
+fn segments_intersect_2d<T: Float>(a0: (T, T), a1: (T, T), b0: (T, T), b1: (T, T), eps: T) -> bool {
+    let o0 = orient_2d(a0, a1, b0);
+    let o1 = orient_2d(a0, a1, b1);
+    let o2 = orient_2d(b0, b1, a0);
+    let o3 = orient_2d(b0, b1, a1);
+
+    if ((o0 > eps && o1 < -eps) || (o0 < -eps && o1 > eps))
+        && ((o2 > eps && o3 < -eps) || (o2 < -eps && o3 > eps))
+    {
+        return true;
+    }
+
+    (o0.abs() <= eps && point_on_segment_2d(b0, a0, a1, eps))
+        || (o1.abs() <= eps && point_on_segment_2d(b1, a0, a1, eps))
+        || (o2.abs() <= eps && point_on_segment_2d(a0, b0, b1, eps))
+        || (o3.abs() <= eps && point_on_segment_2d(a1, b0, b1, eps))
+}
+
+#[inline]
+fn point_in_triangle_2d<T: Float>(point: (T, T), triangle: [(T, T); 3], eps: T) -> bool {
+    let o0 = orient_2d(triangle[0], triangle[1], point);
+    let o1 = orient_2d(triangle[1], triangle[2], point);
+    let o2 = orient_2d(triangle[2], triangle[0], point);
+    (o0 >= -eps && o1 >= -eps && o2 >= -eps) || (o0 <= eps && o1 <= eps && o2 <= eps)
 }
 
 /// Check a single segment against a facet.
