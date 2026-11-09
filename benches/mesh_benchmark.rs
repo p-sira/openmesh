@@ -2,6 +2,8 @@ use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use openmesh::Mesh;
 use openmesh::core::EdgeMap;
 use std::fs::File;
+use std::hint::black_box;
+use std::io::Cursor;
 
 fn load_mesh_stl(path: &str) -> Mesh<f64> {
     let mut file = File::open(path).expect(&format!("Failed to open {}", path));
@@ -128,5 +130,46 @@ fn bench_large_mesh(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_validation_suites, bench_large_mesh);
+fn bench_mesh_report(c: &mut Criterion) {
+    let good = load_mesh_stl("tests/test-data/perfect-suzanne.stl");
+    let bad_all = load_mesh_stl("tests/test-data/bad-suzanne.stl");
+
+    let mut group = c.benchmark_group("mesh_report");
+    for (name, mesh) in [("good", &good), ("bad_combined", &bad_all)] {
+        group.bench_with_input(BenchmarkId::new("check_mesh", name), mesh, |b, m| {
+            b.iter(|| black_box(m.check_mesh(1e-4)))
+        });
+    }
+    group.finish();
+}
+
+fn bench_io(c: &mut Criterion) {
+    let stl_bytes = std::fs::read("tests/test-data/perfect-suzanne.stl")
+        .expect("Failed to read tests/test-data/perfect-suzanne.stl");
+    let obj_bytes = std::fs::read("tests/test-data/skull.obj")
+        .expect("Failed to read tests/test-data/skull.obj");
+
+    let mut group = c.benchmark_group("mesh_io");
+    group.bench_function("from_stl", |b| {
+        b.iter(|| {
+            let mut reader = Cursor::new(black_box(stl_bytes.as_slice()));
+            black_box(Mesh::<f64>::from_stl(&mut reader).unwrap())
+        })
+    });
+    group.bench_function("from_obj_large", |b| {
+        b.iter(|| {
+            let mut reader = Cursor::new(black_box(obj_bytes.as_slice()));
+            black_box(Mesh::<f64>::from_obj(&mut reader).unwrap())
+        })
+    });
+    group.finish();
+}
+
+criterion_group!(
+    benches,
+    bench_validation_suites,
+    bench_large_mesh,
+    bench_mesh_report,
+    bench_io
+);
 criterion_main!(benches);
