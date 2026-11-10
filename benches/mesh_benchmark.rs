@@ -15,6 +15,55 @@ fn load_mesh_obj(path: &str) -> Mesh<f64> {
     Mesh::from_obj(&mut file).expect(&format!("Failed to parse {}", path))
 }
 
+fn disjoint_triangle_grid(face_count: usize) -> Mesh<f64> {
+    let width = ((face_count as f64).sqrt().ceil() as usize).max(1);
+    let mut vertices = Vec::with_capacity(3 * face_count);
+    let mut faces = Vec::with_capacity(face_count);
+
+    for index in 0..face_count {
+        let x = 2.0 * (index % width) as f64;
+        let y = 2.0 * (index / width) as f64;
+        let base = vertices.len();
+        vertices.extend([[x, y, 0.0], [x + 0.75, y, 0.0], [x, y + 0.75, 0.0]]);
+        faces.push([base, base + 1, base + 2]);
+    }
+
+    Mesh::new(vertices, faces)
+}
+
+fn bench_self_intersection_grids(c: &mut Criterion) {
+    let mut group = c.benchmark_group("self_intersection_disjoint_grid");
+    group.measurement_time(std::time::Duration::from_secs(3));
+    group.sample_size(30);
+
+    for face_count in [4, 16, 64, 128, 256, 512, 1023, 1024] {
+        let mesh = disjoint_triangle_grid(face_count);
+        assert_eq!(mesh.check_self_intersecting(), Ok(()));
+        group.bench_with_input(BenchmarkId::from_parameter(face_count), &mesh, |b, mesh| {
+            b.iter(|| black_box(mesh.check_self_intersecting()));
+        });
+    }
+
+    group.finish();
+
+    // Exercise the early-exit path as well as the sparse no-collision path.
+    let mut group = c.benchmark_group("self_intersection_colliding_grid");
+    group.measurement_time(std::time::Duration::from_secs(3));
+    group.sample_size(30);
+
+    for face_count in [4, 64, 128, 1024] {
+        let mut mesh = disjoint_triangle_grid(face_count);
+        let first_face = [mesh.vertices[0], mesh.vertices[1], mesh.vertices[2]];
+        mesh.vertices[3..6].copy_from_slice(&first_face);
+        assert!(mesh.check_self_intersecting().is_err());
+        group.bench_with_input(BenchmarkId::from_parameter(face_count), &mesh, |b, mesh| {
+            b.iter(|| black_box(mesh.check_self_intersecting()));
+        });
+    }
+
+    group.finish();
+}
+
 fn bench_validation_suites(c: &mut Criterion) {
     // Load all representative meshes
     let good = load_mesh_stl("tests/test-data/perfect-suzanne.stl");
@@ -170,6 +219,7 @@ criterion_group!(
     bench_validation_suites,
     bench_large_mesh,
     bench_mesh_report,
-    bench_io
+    bench_io,
+    bench_self_intersection_grids
 );
 criterion_main!(benches);
