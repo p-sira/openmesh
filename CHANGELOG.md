@@ -1,3 +1,10 @@
+# Unreleased
+
+### Performance
+
+- Accelerate self-intersection checks on larger meshes using adaptive AABB
+  sort-and-sweep pruning, with direct scanning for smaller meshes.
+
 # 0.3
 
 ## 0.3.0

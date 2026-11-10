@@ -60,48 +60,119 @@ fn check_intersecting_internal<T: Float>(
 ) -> bool {
     let num_faces = faces.len();
 
-    let check_face_pair = |i: usize| {
-        let aabb1 = &aabbs[i];
-        for j in (i + 1)..num_faces {
-            let aabb2 = &aabbs[j];
+    let intersects_pair = |i: usize, j: usize| {
+        let f1 = &faces[i];
+        let f2 = &faces[j];
 
-            if !aabb1.intersects(aabb2) {
-                continue;
+        // Skip adjacent faces.
+        if f1.0 == f2.0
+            || f1.0 == f2.1
+            || f1.0 == f2.2
+            || f1.1 == f2.0
+            || f1.1 == f2.1
+            || f1.1 == f2.2
+            || f1.2 == f2.0
+            || f1.2 == f2.1
+            || f1.2 == f2.2
+        {
+            return false;
+        }
+
+        let t1 = [&vertices[f1.0], &vertices[f1.1], &vertices[f1.2]];
+        let t2 = [&vertices[f2.0], &vertices[f2.1], &vertices[f2.2]];
+
+        if let Some(n2) = &normals[j]
+            && triangle_intersects_facet(t1, t2, n2)
+        {
+            return true;
+        }
+
+        if let Some(n1) = &normals[i]
+            && triangle_intersects_facet(t2, t1, n1)
+        {
+            return true;
+        }
+        false
+    };
+
+    // On large but already-intersecting meshes, the original scan often exits
+    // immediately. Check a few early pairs before paying the sorting cost.
+    if num_faces >= 128 {
+        for i in 0..4 {
+            for j in (i + 1)..4 {
+                if aabbs[i].intersects(&aabbs[j]) && intersects_pair(i, j) {
+                    return true;
+                }
             }
+        }
+    }
 
-            let f1 = &faces[i];
-            let f2 = &faces[j];
-
-            // Skip adjacent faces
-            if f1.0 == f2.0
-                || f1.0 == f2.1
-                || f1.0 == f2.2
-                || f1.1 == f2.0
-                || f1.1 == f2.1
-                || f1.1 == f2.2
-                || f1.2 == f2.0
-                || f1.2 == f2.1
-                || f1.2 == f2.2
-            {
-                continue;
+    // Small meshes are faster without sorting. Sweep the axis with the widest
+    // spread of box minima, and skip sorting entirely if no axis can prune.
+    // Non-finite bounds may arise from finite coordinates near the type limit;
+    // those inputs retain the exhaustive scan.
+    let sorted = if num_faces < 128 {
+        None
+    } else {
+        let mut min = [T::infinity(); 3];
+        let mut max = [T::neg_infinity(); 3];
+        for aabb in aabbs {
+            for axis in 0..3 {
+                min[axis] = min[axis].min(aabb.min_axis(axis));
+                max[axis] = max[axis].max(aabb.min_axis(axis));
             }
-
-            let t1 = [&vertices[f1.0], &vertices[f1.1], &vertices[f1.2]];
-            let t2 = [&vertices[f2.0], &vertices[f2.1], &vertices[f2.2]];
-
-            let n1 = &normals[i];
-            let n2 = &normals[j];
-
-            if let Some(n2) = n2
-                && triangle_intersects_facet(t1, t2, n2)
-            {
-                return true;
+        }
+        let mut axis = 0;
+        for candidate in 1..3 {
+            if max[candidate] - min[candidate] > max[axis] - min[axis] {
+                axis = candidate;
             }
+        }
 
-            if let Some(n1) = n1
-                && triangle_intersects_facet(t2, t1, n1)
-            {
-                return true;
+        if max[axis] <= min[axis]
+            || !aabbs
+                .iter()
+                .all(|aabb| aabb.min_axis(axis).is_finite() && aabb.max_axis(axis).is_finite())
+        {
+            None
+        } else {
+            let mut indices: Vec<_> = (0..num_faces).collect();
+            indices.sort_unstable_by(|&i, &j| {
+                aabbs[i]
+                    .min_axis(axis)
+                    .partial_cmp(&aabbs[j].min_axis(axis))
+                    .unwrap()
+            });
+            Some((axis, indices))
+        }
+    };
+
+    let check_face_pair = |position: usize| {
+        if let Some((axis, indices)) = &sorted {
+            let i = indices[position];
+            let aabb1 = &aabbs[i];
+            for &j in &indices[(position + 1)..] {
+                let aabb2 = &aabbs[j];
+                // Subsequent AABBs start even farther along the sweep axis.
+                if aabb1.max_axis(*axis) < aabb2.min_axis(*axis) {
+                    break;
+                }
+                if !aabb1.intersects(aabb2) {
+                    continue;
+                }
+                if intersects_pair(i, j) {
+                    return true;
+                }
+            }
+        } else {
+            let aabb1 = &aabbs[position];
+            for (j, aabb2) in aabbs.iter().enumerate().skip(position + 1) {
+                if !aabb1.intersects(aabb2) {
+                    continue;
+                }
+                if intersects_pair(position, j) {
+                    return true;
+                }
             }
         }
         false

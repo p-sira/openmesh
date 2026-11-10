@@ -41,4 +41,14 @@ impl<T: Float> AABB<T> {
         }
         true
     }
+
+    #[inline]
+    pub(crate) fn min_axis(&self, axis: usize) -> T {
+        self.min[axis]
+    }
+
+    #[inline]
+    pub(crate) fn max_axis(&self, axis: usize) -> T {
+        self.max[axis]
+    }
 }
