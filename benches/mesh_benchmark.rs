@@ -36,7 +36,7 @@ fn bench_self_intersection_grids(c: &mut Criterion) {
     group.measurement_time(std::time::Duration::from_secs(3));
     group.sample_size(30);
 
-    for face_count in [4, 16, 64, 128, 256, 1024] {
+    for face_count in [4, 16, 64, 128, 256, 512, 1023, 1024] {
         let mesh = disjoint_triangle_grid(face_count);
         assert_eq!(mesh.check_self_intersecting(), Ok(()));
         group.bench_with_input(BenchmarkId::from_parameter(face_count), &mesh, |b, mesh| {

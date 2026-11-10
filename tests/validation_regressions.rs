@@ -213,7 +213,7 @@ fn append_triangle(mesh: &mut Mesh<f64>, vertices: [[f64; 3]; 3]) {
 
 #[test]
 fn sparse_triangle_grids_have_no_self_intersections() {
-    for face_count in [0, 1, 2, 4, 16, 64, 127, 128, 129, 256, 1024] {
+    for face_count in [0, 1, 2, 4, 16, 64, 127, 128, 129, 256, 1023, 1024, 1025] {
         let mesh = disjoint_triangle_grid(face_count);
         assert_eq!(
             mesh.check_self_intersecting(),
@@ -225,7 +225,7 @@ fn sparse_triangle_grids_have_no_self_intersections() {
 
 #[test]
 fn pruning_finds_non_adjacent_crossings_regardless_of_face_order() {
-    for face_count in [4, 16, 64, 127, 128, 129, 256] {
+    for face_count in [4, 16, 64, 127, 128, 129, 256, 1023, 1024] {
         let mut mesh = disjoint_triangle_grid(face_count);
         // The new facet cuts through the interior of grid face 0 without
         // sharing any vertex indices with it.
@@ -255,7 +255,7 @@ fn pruning_finds_non_adjacent_crossings_regardless_of_face_order() {
 
 #[test]
 fn identical_face_bounds_do_not_hide_coplanar_intersections() {
-    for face_count in [0, 4, 64, 127, 128, 129, 256] {
+    for face_count in [0, 4, 64, 127, 128, 129, 256, 1023, 1024] {
         let mut mesh = disjoint_triangle_grid(face_count);
         // Both facets span x=-4..-2 and y=-4..-2, with overlapping
         // interiors, but use distinct vertex indices.

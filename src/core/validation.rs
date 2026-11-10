@@ -95,23 +95,27 @@ fn check_intersecting_internal<T: Float>(
         false
     };
 
-    // On large but already-intersecting meshes, the original scan often exits
-    // immediately. Check a few early pairs before paying the sorting cost.
-    if num_faces >= 128 {
-        for i in 0..4 {
-            for j in (i + 1)..4 {
-                if aabbs[i].intersects(&aabbs[j]) && intersects_pair(i, j) {
+    // On larger meshes, try a bounded number of pairs in original order first:
+    // some meshes intersect early in face order, but much later after sorting.
+    if num_faces >= 1024 {
+        const PAIR_BUDGET: usize = 50_000;
+        let rows = (PAIR_BUDGET / num_faces).max(1);
+        let end = num_faces.min(PAIR_BUDGET + 1);
+        for (i, aabb1) in aabbs.iter().enumerate().take(rows) {
+            for (j, aabb2) in aabbs.iter().enumerate().take(end).skip(i + 1) {
+                if aabb1.intersects(aabb2) && intersects_pair(i, j) {
                     return true;
                 }
             }
         }
     }
 
-    // Small meshes are faster without sorting. Sweep the axis with the widest
-    // spread of box minima, and skip sorting entirely if no axis can prune.
+    // For medium-size meshes, retain original face order to avoid delaying
+    // early intersections. Otherwise sweep the axis with the widest spread
+    // of box minima, and skip sorting entirely if no axis can prune.
     // Non-finite bounds may arise from finite coordinates near the type limit;
     // those inputs retain the exhaustive scan.
-    let sorted = if num_faces < 128 {
+    let sorted = if num_faces < 1024 {
         None
     } else {
         let mut min = [T::infinity(); 3];

@@ -2,8 +2,9 @@
 
 ### Performance
 
-- Accelerate self-intersection checks on larger meshes using adaptive AABB
-  sort-and-sweep pruning, with direct scanning for smaller meshes.
+- Accelerate self-intersection checks on meshes with at least 1,024 faces using
+  adaptive AABB sort-and-sweep pruning and a bounded early-collision probe.
+  Smaller meshes retain the direct scan.
 
 # 0.3
 
